@@ -1,6 +1,5 @@
 from itertools import chain
 
-import tableschema
 from datapackage_pipelines.wrapper import ingest, spew
 
 from datapackage_pipelines_datapipes.common import Logger
@@ -33,18 +32,12 @@ def process_resources(resource_iterator, headers):
 
 def main():
     parameters, dp, res_iter = ingest()
-    logger = Logger(parameters)
-    logger.start()
-
-    first_res = next(res_iter)
-    headers = next(first_res)
-
-    dp = process_datapackage(dp, headers)
-
-    spew(dp, logger.log_rows(dp,
-                             process_resources(chain([first_res], res_iter), headers)))
-
-    logger.done()
+    with Logger(parameters) as logger:
+        first_res = next(res_iter)
+        headers = next(first_res)
+        dp = process_datapackage(dp, headers)
+        spew(dp, logger.log_rows(dp,
+                                 process_resources(chain([first_res], res_iter), headers)))
 
 if __name__ == '__main__':
     main()

@@ -7,7 +7,7 @@ from datapackage_pipelines.utilities.extended_json import LazyJsonLine
 only_last = os.environ.get('DATAPIPES_DOWNLOAD') is not None
 
 
-class Logger:
+class LoggerImpl:
 
     def __init__(self, parameters):
         self.uuid = parameters['uuid']
@@ -57,3 +57,20 @@ class Logger:
 
         for spec, res in zip(dp['resources'], res_iter):
             yield res_logger(spec, res)
+
+
+class Logger:
+
+    def __init__(self, parameters):
+        self.parameters = parameters
+
+    def __enter__(self):
+        self.logger = LoggerImpl(self.parameters)
+        self.logger.start()
+        return self.logger
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_val is not None:
+            self.logger.error(str(exc_val))
+        self.logger.done()
+        return True

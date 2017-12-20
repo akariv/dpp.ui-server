@@ -1,7 +1,7 @@
 import tableschema
 from datapackage_pipelines.wrapper import ingest, spew
 
-from datapackage_pipelines_datapipes.common import Logger
+from datapackage_pipelines_datapipes.common import Logger, LoggerImpl
 
 
 def process_datapackage(datapackage, parameters):
@@ -17,7 +17,7 @@ def process_datapackage(datapackage, parameters):
     return datapackage
 
 
-def process_resource(spec, rows, parameters, logger: Logger):
+def process_resource(spec, rows, parameters, logger: LoggerImpl):
     mutated_field = parameters['field']
     fields = spec['schema']['fields']
     schema = {
@@ -44,15 +44,11 @@ def process_resources(resource_iterator, parameters, logger):
 
 def main():
     parameters, dp, res_iter = ingest()
-    logger = Logger(parameters)
-    logger.start()
+    with Logger(parameters) as logger:
+        dp = process_datapackage(dp, parameters)
+        spew(dp, logger.log_rows(dp,
+                                 process_resources(res_iter, parameters, logger)))
 
-    dp = process_datapackage(dp, parameters)
-
-    spew(dp, logger.log_rows(dp,
-                             process_resources(res_iter, parameters, logger)))
-
-    logger.done()
 
 if __name__ == '__main__':
     main()

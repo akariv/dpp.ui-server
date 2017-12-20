@@ -51,18 +51,13 @@ def load(logger, dp, url, res_name):
 
 def main():
     parameters, dp, res_iter = ingest()
-    logger = Logger(parameters)
-    logger.start()
-
-    logging.info('Will now spew')
-    spew(dp, logger.log_rows(dp,
-                             chain(res_iter,
-                                   [load(logger, dp, parameters['url'], parameters['res_name'])]
-                             )
-             )
-    )
-
-    logger.done()
+    with Logger(parameters) as logger:
+        spew(dp, logger.log_rows(dp,
+                                 chain(res_iter,
+                                       [load(logger, dp, parameters['url'], parameters['res_name'])]
+                                 )
+                 )
+        )
 
 if __name__ == '__main__':
     main()
