@@ -1,8 +1,7 @@
 import logging
-import json
 import os
 
-from datapackage_pipelines.utilities.extended_json import LazyJsonLine
+from datapackage_pipelines.utilities.extended_json import LazyJsonLine, json
 
 only_last = os.environ.get('DATAPIPES_DOWNLOAD') is not None
 
