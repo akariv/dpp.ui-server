@@ -34,12 +34,21 @@ class LoggerImpl:
     def done(self):
         self._event('done')
 
+    def line_filter(self, i, scale):
+        for _ in range(10):
+            new_scale = scale * 10
+            if i <= new_scale:
+                return scale, i % scale == 0
+            scale = new_scale
+
     def log_rows(self, dp, res_iter):
         def res_logger(spec_, res_):
             last = []
+            scale = 1
             self._event('rs', data=spec_['schema']['fields'])
             for i, row in enumerate(res_):
-                if i < 50 or i % 100 == 0 or only_last:
+                scale, show = self.line_filter(i, scale)
+                if show or only_last:
                     if isinstance(row, LazyJsonLine):
                         row = dict(row)
                     self._event('r', res=spec_['name'], idx=i, data=row)

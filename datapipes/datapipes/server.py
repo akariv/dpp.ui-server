@@ -1,6 +1,5 @@
 import codecs
 import csv
-import json
 import asyncio
 import uuid
 import os
@@ -10,6 +9,9 @@ import datetime
 from aiohttp import web
 from aiohttp_sse import sse_response
 from copy import copy
+
+from datapackage_pipelines.utilities.extended_json import json
+from datapackage_pipelines.lib.dump.file_formats import CSVFormat
 
 BASE_PATH = os.environ.get('BASE_PATH', '/var/datapip.es')
 
@@ -96,7 +98,6 @@ async def events(request: web.Request):
                     continue
                 try:
                     resp.send(line)
-                    print('>>>>>>', line)
                 except:
                     raise
             print('done!', uuid)
@@ -109,6 +110,8 @@ async def download(request: web.Request):
 
     uuid = request.match_info['id']
     writer = None
+    csvf = None
+    fields = None
     encoder = codecs.getwriter('utf-8')
 
     headers = copy(CORS_HEADERS)
@@ -125,15 +128,19 @@ async def download(request: web.Request):
             if line is None:
                 continue
             line = json.loads(line)
-            print('DD', line)
             if 'e' in line:
                 if line['e'] == 'rs':
-                    headers = [x['name'] for x in line['data']]
-                    writer = csv.DictWriter(encoder(resp), headers)
+                    fields = dict(
+                        (x['name'], x) for x in line['data']
+                    )
+                    writer = csv.DictWriter(encoder(resp),
+                                            [x['name'] for x in line['data']])
                     writer.writeheader()
+                    csvf = CSVFormat()
                     await resp.drain()
                 elif line['e'] == 'r' and writer is not None:
-                    writer.writerow(line['data'])
+                    csvf.write_row(writer, line['data'], fields)
+                    # writer.writerow(line['data'])
                     await resp.drain()
 
     return resp
