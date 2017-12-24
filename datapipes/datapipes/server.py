@@ -73,7 +73,9 @@ class ProcessRunner:
         except ProcessLookupError:
             pass
         await self.process.wait()
-        print('RETCODE', self.process.returncode)
+        if self.process.returncode != 0:
+            print('RETCODE', self.process.returncode)
+            raise ChildProcessError(self.process.returncode)
         try:
             os.remove(os.path.join(path_for_id(self.id), self.dppdb_filename))
         except FileNotFoundError:
@@ -91,17 +93,18 @@ async def events(request: web.Request):
 
     uuid = request.match_info['id']
     async with sse_response(request, headers=CORS_HEADERS) as resp:
-        async with ProcessRunner(loop, uuid) as process:
-            print('starting!', uuid)
-            async for line in LineReader(process.stderr):
-                if line is None:
-                    continue
-                try:
+        try:
+            async with ProcessRunner(loop, uuid) as process:
+                print('starting!', uuid)
+                async for line in LineReader(process.stderr):
+                    if line is None:
+                        continue
                     resp.send(line)
-                except:
-                    raise
-            print('done!', uuid)
-            resp.send('close')
+                print('done!', uuid)
+                resp.send('close')
+        except Exception as e:
+            msg = 'General Error %s' % e
+            resp.send(json.dumps({'e': 'err', 'msg': msg, 'uuid': 'general'}))
     return resp
 
 

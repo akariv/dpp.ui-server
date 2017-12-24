@@ -18,7 +18,6 @@ def process_resources(res_iter, columns_to_remove):
 def main():
     parameters, dp, res_iter = ingest()
     with Logger(parameters) as logger:
-        logger.start()
         columns_to_remove = []
         for _ in range(parameters['amount']):
             f = dp['resources'][0]['schema']['fields'].pop(0)

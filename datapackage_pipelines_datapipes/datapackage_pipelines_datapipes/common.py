@@ -9,6 +9,7 @@ only_last = os.environ.get('DATAPIPES_DOWNLOAD') is not None
 class LoggerImpl:
 
     def __init__(self, parameters):
+        self.bad_values = 0
         self.uuid = parameters['uuid']
 
     def _send(self, msg):
@@ -29,10 +30,12 @@ class LoggerImpl:
         self._event('err', msg=msg)
 
     def bad_value(self, res, idx, data, field, value):
-        self._event('ve', res=res, idx=idx, data=data, field=field, value=value)
+        if self.bad_values < 100:
+            self._event('ve', res=res, idx=idx, data=data, field=field, value=value)
+        self.bad_values += 1
 
     def done(self):
-        self._event('done')
+        self._event('done', bad_values=self.bad_values)
 
     def line_filter(self, i, scale):
         for _ in range(10):
@@ -79,6 +82,7 @@ class Logger:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_val is not None:
+            logging.exception('Processor failed')
             self.logger.error(str(exc_val))
         self.logger.done()
         return True

@@ -24,15 +24,21 @@ def process_resource(spec, rows, parameters, logger: LoggerImpl):
         'fields': list(filter(lambda f: f['name'] == mutated_field,
                               fields))
     }
-    jts = tableschema.Schema(schema)
+    jts = tableschema.Schema(schema).fields[0]
+    bad_count = 0
     for i, row in enumerate(rows):
-        flattened_row = [row.get(mutated_field)]
+        if bad_count > 100:
+            yield row
+            continue
+
+        value = row.get(mutated_field)
         try:
-            flattened_row = jts.cast_row(flattened_row)
-            row[mutated_field] = flattened_row[0]
+            value = jts.cast_value(value)
+            row[mutated_field] = value
             yield row
 
         except Exception:
+            bad_count += 1
             logger.bad_value(spec['name'], i, dict(row), mutated_field, row.get(mutated_field))
             yield row
 

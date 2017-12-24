@@ -51,13 +51,11 @@ class Generator(GeneratorBase):
                                      {'field': options['field'],
                                       'options': options['options']}))
             elif verb == 'filter':
-                pipeline.append(step('filter',
+                pipeline.append(step('datapipes.filter',
                                      {
-                                         'in': [
-                                             {
-                                                options['field']: options['value']
-                                             }
-                                         ]
+                                         'field': options['field'],
+                                         'op': options['op'],
+                                         'arg': options['arg'],
                                      }
                                 ))
                 pipeline.append(step('datapipes.noop', {}))
