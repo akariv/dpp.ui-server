@@ -35,10 +35,10 @@ class LineReader:
             line : str = line.decode('utf8')
             s = line.find('{')
             if s >= 0:
-                line = line[s:].strip()
+                stripped = line[s:].strip()
                 try:
-                    json.loads(line)
-                    return line
+                    json.loads(stripped)
+                    return stripped
                 except json.JSONDecodeError:
                     print('??', line)
                     pass
@@ -58,7 +58,7 @@ class ProcessRunner:
 
     async def __aenter__(self):
         self.process = \
-            await asyncio.create_subprocess_exec('/usr/local/bin/dpp', 'run', './dp',
+            await asyncio.create_subprocess_exec('/usr/local/bin/dpp', 'run', '--verbose', './dp',
                                                  cwd=path_for_id(self.id),
                                                  loop=self.loop,
                                                  stdin=asyncio.subprocess.DEVNULL,
@@ -99,9 +99,9 @@ async def events(request: web.Request):
                 async for line in LineReader(process.stderr):
                     if line is None:
                         continue
-                    resp.send(line)
+                    await resp.send(line)
                 print('done!', uuid)
-                resp.send('close')
+                await resp.send('close')
         except Exception as e:
             msg = 'General Error %s' % e
             resp.send(json.dumps({'e': 'err', 'msg': msg, 'uuid': 'general'}))
@@ -115,7 +115,14 @@ async def download(request: web.Request):
     writer = None
     csvf = None
     fields = None
-    encoder = codecs.getwriter('utf-8')
+    tasks = []
+
+    class encoder():
+        def __init__(self, out):
+            self.out = out
+        
+        def write(self, i):
+            tasks.append(self.out.write(i.encode('utf-8')))
 
     headers = copy(CORS_HEADERS)
     headers.update({'Content-Type': 'text/csv',
@@ -140,10 +147,14 @@ async def download(request: web.Request):
                                             [x['name'] for x in line['data']])
                     writer.writeheader()
                     csvf = CSVFormat()
+                    await asyncio.gather(*tasks)
+                    tasks = []
                     await resp.drain()
                 elif line['e'] == 'r' and writer is not None:
                     csvf.write_row(writer, line['data'], fields)
                     # writer.writerow(line['data'])
+                    await asyncio.gather(*tasks)
+                    tasks = []
                     await resp.drain()
 
     return resp

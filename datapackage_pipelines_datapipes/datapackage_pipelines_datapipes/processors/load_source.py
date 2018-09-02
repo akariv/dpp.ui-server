@@ -29,7 +29,7 @@ def load(logger, dp, url, res_name):
         dp['resources'].append({
             PROP_STREAMING: True,
             'name': res_name,
-            'path': '.',
+            'path': '_',
             'schema': {
                 'fields': [
                     {'name': h, 'type': 'string'}

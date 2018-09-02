@@ -24,7 +24,7 @@ class Generator(GeneratorBase):
         return json.load(open(SCHEMA_FILE))
 
     @classmethod
-    def generate_pipeline(cls, source):
+    def generate_pipeline(cls, source, base):
         pipeline = []
         for action in source.get('actions', []):
             uuid, verb, options = action['uuid'], action['verb'], action['options']
@@ -66,7 +66,7 @@ class Generator(GeneratorBase):
 
         pipeline.append(('datapipes.noop', {'uuid': 'last'}, False))
 
-        yield 'dp', {
+        yield os.path.join(base, 'dp'), {
             'pipeline':
                 steps(
                     ('datapipes.init', ),
